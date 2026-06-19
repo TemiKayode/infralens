@@ -257,39 +257,53 @@ docker compose up -d etcd minio prometheus grafana
 
 ### 2. Run the server
 
-```bash
-# Development mode (verbose logs, smaller buffers)
-INFRALENS_ENV=development cargo run --bin infralens-server
+```powershell
+# PowerShell — add Cargo to PATH first if needed
+$env:PATH += ";$env:USERPROFILE\.cargo\bin"
 
-# Or release binary
+# Development mode (verbose logs, smaller buffers)
+$env:INFRALENS_ENV = "development"; cargo run --bin infralens-server
+
+# Or build a release binary and run it directly
 cargo build --release --bin infralens-server
-./target/release/infralens-server
+.\target\release\infralens-server.exe
+```
+
+```bash
+# bash (macOS / Linux)
+INFRALENS_ENV=development cargo run --bin infralens-server
 ```
 
 ### 3. Verify it started
 
-```bash
+```powershell
 # Health check
-curl http://localhost:4318/healthz
+Invoke-RestMethod http://localhost:4318/healthz
 # → ok
 
-# Prometheus metrics
-curl http://localhost:9090/metrics | grep infralens
+# Prometheus metrics (filter to infralens lines)
+(Invoke-WebRequest http://localhost:9090/metrics).Content -split "`n" | Select-String "infralens"
 ```
 
 ### 4. Run the API Gateway (second terminal)
 
+```powershell
+cd services/api-gateway
+$env:QUERY_BACKEND = "localhost:5317"; go run .
+# → listening on :8080
+```
+
 ```bash
+# bash
 cd services/api-gateway
 QUERY_BACKEND=localhost:5317 go run .
-# → listening on :8080
 ```
 
 ### 5. Verify the gateway
 
-```bash
-curl http://localhost:8080/healthz
-# → {"status":"ok"}
+```powershell
+Invoke-RestMethod http://localhost:8080/healthz
+# → ok
 ```
 
 ---
@@ -930,37 +944,38 @@ INFRALENS__STORAGE__COMPACTION_INTERVAL_SECS=5
 
 1. Verify data was ingested: `curl http://localhost:4318/healthz` returns `ok`
 2. Check the time range — default queries use `now()` so clock skew matters
-3. Check logs for flush errors: `docker compose logs infralens | grep flush`
+3. Check logs for flush errors: `docker compose logs infralens | Select-String flush` (PowerShell) or `| grep flush` (bash)
 4. Widen the time window: `WHERE timestamp_ns >= now() - INTERVAL '1 day'`
 
 ---
 
 ## Quick Reference Card
 
-```bash
+```powershell
 # ── Build ─────────────────────────────────────────────────────────────────────
-cargo build --workspace                          # debug
-cargo build --release --bin infralens-server     # release binary
+$env:PATH += ";$env:USERPROFILE\.cargo\bin"       # add cargo to session PATH
+cargo build --workspace                            # debug
+cargo build --release --bin infralens-server       # release binary
 
 # ── Run locally ───────────────────────────────────────────────────────────────
 docker compose up -d etcd minio prometheus grafana
-INFRALENS_ENV=development cargo run --bin infralens-server
+$env:INFRALENS_ENV = "development"; cargo run --bin infralens-server
 
 # ── Full stack ────────────────────────────────────────────────────────────────
 docker compose up -d
 docker compose --profile copilot up -d llm-copilot   # optional
 
 # ── Send data ─────────────────────────────────────────────────────────────────
-curl -X POST http://localhost:4318/v1/logs -H "Content-Type: application/json" \
-  -d '{"resourceLogs":[{"resource":{"attributes":[{"key":"service.name","value":{"stringValue":"test"}}]},"scopeLogs":[{"logRecords":[{"timeUnixNano":"'$(date +%s%N)'","severityNumber":9,"body":{"stringValue":"hello"}}]}]}]}'
+$body = Get-Content demos\payloads\sample-logs.json -Raw -Encoding UTF8
+Invoke-RestMethod -Uri http://localhost:4318/v1/logs -Method POST -ContentType "application/json" -Body $body
 
 # ── Query ─────────────────────────────────────────────────────────────────────
-curl -X POST http://localhost:8080/v1/query -H "Content-Type: application/json" \
-  -d '{"query":"SELECT body FROM logs WHERE timestamp_ns >= now() - INTERVAL '\''5 minutes'\'' LIMIT 5"}'
+$q = @{ query = "SELECT body FROM logs WHERE timestamp_ns >= now() - INTERVAL '5 minutes' LIMIT 5;" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://localhost:8080/api/v1/query -Method POST -ContentType "application/json" -Body $q
 
 # ── Copilot ───────────────────────────────────────────────────────────────────
-curl -X POST http://localhost:8081/v1/nl2iql -H "Content-Type: application/json" \
-  -d '{"question":"show me errors from the last 30 minutes"}'
+$q = @{ question = "show me errors from the last 30 minutes" } | ConvertTo-Json
+Invoke-RestMethod -Uri http://localhost:8081/v1/nl2iql -Method POST -ContentType "application/json" -Body $q
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 cargo test --workspace
