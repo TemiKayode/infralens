@@ -46,14 +46,14 @@ impl ZoneMap {
 
     pub fn write_to_file(&self, path: impl AsRef<Path>) -> std::io::Result<()> {
         let bytes = bincode::serialize(self)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
         std::fs::write(path, bytes)
     }
 
     pub fn read_from_file(path: impl AsRef<Path>) -> std::io::Result<Self> {
         let bytes = std::fs::read(path)?;
         bincode::deserialize(&bytes)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+            .map_err(|e| std::io::Error::other(e.to_string()))
     }
 }
 

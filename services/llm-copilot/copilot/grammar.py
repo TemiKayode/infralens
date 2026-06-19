@@ -79,7 +79,7 @@ def build_gbnf_grammar(
         # Literals
         'integer      ::= [0-9]+',
         'float-lit    ::= [0-9]+ "." [0-9]+',
-        'string-lit   ::= "\''" [^"]* "\''\"',
+        "string-lit   ::= \"'\" [^']* \"'\"",
         'literal      ::= integer | float-lit | string-lit | "TRUE" | "FALSE" | "NULL"',
         '',
         # Intervals

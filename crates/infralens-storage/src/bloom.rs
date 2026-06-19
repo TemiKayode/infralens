@@ -3,7 +3,6 @@
 //! Serialised format:
 //!   [num_bits: u64 LE] [num_hashes: u32 LE] [bits: ceil(num_bits/8) bytes]
 
-use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone)]

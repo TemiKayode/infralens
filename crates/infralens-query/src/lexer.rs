@@ -182,10 +182,12 @@ mod tests {
     fn tokenise_simple_select() {
         let mut l = Lexer::new("SELECT foo, bar FROM logs WHERE x = 1");
         let tokens = l.tokenise().unwrap();
+        // tokens: SELECT foo , bar FROM logs WHERE x = 1
+        //         [0]   [1] [2][3] [4]  [5]
         assert!(matches!(tokens[0], Token::Select));
         assert!(matches!(&tokens[1], Token::Ident(s) if s == "foo"));
-        assert!(matches!(tokens[3], Token::From));
-        assert!(matches!(&tokens[4], Token::Ident(s) if s == "logs"));
+        assert!(matches!(tokens[4], Token::From));
+        assert!(matches!(&tokens[5], Token::Ident(s) if s == "logs"));
     }
 
     #[test]

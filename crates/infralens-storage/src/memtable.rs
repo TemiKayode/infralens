@@ -3,7 +3,7 @@
 //! Keys are `(timestamp_ns, signal_type, sequence)` — naturally ordered by time
 //! so that SSTable flushes produce sorted Parquet files without an extra sort step.
 
-use crate::error::{Result, StorageError};
+use crate::error::Result;
 use infralens_common::model::{LogRecord, MetricPoint, SignalType, SpanRecord};
 use parking_lot::RwLock;
 use std::collections::BTreeMap;

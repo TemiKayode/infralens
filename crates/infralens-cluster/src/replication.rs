@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info, warn};
 
 const BUFFER_PER_REPLICA: usize = 4096;
 
@@ -170,7 +170,6 @@ pub async fn apply_replica_entry(
     entry:   ReplicationEntry,
     storage: Arc<infralens_storage::StorageEngine>,
 ) -> Result<(), ClusterError> {
-    use infralens_storage::error::StorageError;
     // Re-parse the WAL entry and write to local storage.
     // The WAL entry bytes already contain a bincode-serialised record with a
     // type prefix byte (ENTRY_LOG/ENTRY_METRIC/ENTRY_SPAN).

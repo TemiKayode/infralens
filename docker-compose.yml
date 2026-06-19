@@ -1,5 +1,3 @@
-version: "3.9"
-
 # Full InfraLens stack — Phase 5
 # Run with: docker compose up -d
 # LLM copilot is disabled by default (requires a ~2 GB model file).

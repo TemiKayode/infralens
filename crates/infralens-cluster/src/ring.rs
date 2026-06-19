@@ -136,7 +136,7 @@ mod tests {
         // Each node should handle roughly 33 % ± 10 %.
         for (node, count) in &counts {
             let pct = *count as f64 / 10_000.0;
-            assert!(pct > 0.23 && pct < 0.43, "node {node} got {pct:.1%}");
+            assert!(pct > 0.23 && pct < 0.43, "node {node} got {:.1}%", pct * 100.0);
         }
     }
 

@@ -367,20 +367,20 @@ impl Parser {
 /// Parse an interval string like "5 minutes", "1h", "30s", "1 day" to nanoseconds.
 pub fn parse_interval(s: &str) -> PResult<i64> {
     let s = s.trim();
-    let (num_str, unit) = s.split_once(|c: char| c.is_alphabetic())
-        .map(|(n, u)| (n.trim(), format!("{}{}", u.trim().chars().next().unwrap_or('s'), &u[1..])))
-        .unwrap_or((s, "s".to_string()));
+    let split_pos = s.find(|c: char| c.is_alphabetic()).unwrap_or(s.len());
+    let num_str = s[..split_pos].trim();
+    let unit    = s[split_pos..].trim().to_ascii_lowercase();
 
-    let num: i64 = num_str.trim().parse()
-        .map_err(|_| QueryError::Parse(format!("invalid interval: {s}")))?;
+    let num: i64 = num_str.parse()
+        .map_err(|_| QueryError::Parse(format!("invalid interval number in: '{s}'")))?;
 
-    let ns_per_unit = match unit.to_ascii_lowercase().trim_end_matches('s') {
-        "microsecond" | "microsec" | "us"  => 1_000i64,
-        "millisecond" | "ms"               => 1_000_000,
-        "second"  | "sec"   | "s"         => 1_000_000_000,
-        "minute"  | "min"   | "m"         => 60 * 1_000_000_000,
-        "hour"    | "hr"    | "h"         => 3_600 * 1_000_000_000,
-        "day"     | "d"                   => 86_400 * 1_000_000_000i64,
+    let ns_per_unit: i64 = match unit.as_str() {
+        "us" | "microsecond"  | "microseconds"              => 1_000,
+        "ms" | "millisecond"  | "milliseconds" | "millisec" => 1_000_000,
+        "s"  | "sec" | "second"  | "seconds"               => 1_000_000_000,
+        "m"  | "min" | "minute"  | "minutes"               => 60 * 1_000_000_000,
+        "h"  | "hr"  | "hour"    | "hours"                 => 3_600 * 1_000_000_000,
+        "d"  | "day" | "days"                               => 86_400 * 1_000_000_000,
         other => return Err(QueryError::Parse(format!("unknown interval unit: {other}"))),
     };
     Ok(num * ns_per_unit)

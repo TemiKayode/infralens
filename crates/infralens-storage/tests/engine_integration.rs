@@ -7,7 +7,7 @@ use infralens_common::{
 use infralens_storage::StorageEngine;
 use std::collections::HashMap;
 use tempfile::TempDir;
-use tokio::time::{sleep, Duration};
+use tokio::time::Duration;
 
 fn make_config(dir: &TempDir) -> StorageConfig {
     StorageConfig {
@@ -119,12 +119,11 @@ async fn memtable_flush_on_size_limit() {
 
     let engine = StorageEngine::open(config).await.unwrap();
 
-    for i in 0..10u64 {
+    // 3 writes is enough to trigger multiple flushes; close() drains the rest.
+    for i in 0..3u64 {
         engine.write_batch(IngestBatch::Logs(vec![make_log(i * 1_000_000_000)])).await.unwrap();
     }
 
-    // Give the flush worker time to drain.
-    sleep(Duration::from_millis(200)).await;
     engine.close().await.unwrap();
 
     let parquet_count = count_files(dir.path(), "parquet");
@@ -209,7 +208,8 @@ mod proptest_tests {
                     }
                 }
                 prop_assert_eq!(total_rows, count);
-            });
+                Ok::<(), proptest::prelude::TestCaseError>(())
+            })?;
         }
     }
 }
