@@ -1,0 +1,12 @@
+# Overrides for local development — smaller buffers, verbose logging.
+[storage]
+data_dir             = "./dev-data"
+memtable_size_bytes  = 4194304   # 4 MiB — flush frequently to exercise the path
+partition_hours      = 24        # One partition per day in dev
+
+[ingest]
+buffer_depth = 256
+
+[telemetry]
+log_level = "debug"
+json_logs = false    # Human-readable in terminal

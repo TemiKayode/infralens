@@ -1,0 +1,148 @@
+version: "3.9"
+
+# Full InfraLens stack — Phase 5
+# Run with: docker compose up -d
+# LLM copilot is disabled by default (requires a ~2 GB model file).
+# Enable with: docker compose --profile copilot up -d
+
+services:
+
+  # ── etcd (cluster membership) ────────────────────────────────────────────────
+  etcd:
+    image: bitnami/etcd:3.5
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
+      ETCD_LISTEN_CLIENT_URLS:    http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    volumes:
+      - etcd-data:/bitnami/etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    restart: unless-stopped
+
+  # ── InfraLens Server (3-node cluster via profiles) ────────────────────────────
+  infralens:
+    build:
+      context:    .
+      dockerfile: Dockerfile
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "9090:9090"   # Prometheus metrics
+      - "5317:5317"   # Internal gRPC
+    volumes:
+      - infralens-data:/data
+      - ./config:/app/config:ro
+    environment:
+      INFRALENS_ENV:                      "default"
+      INFRALENS__STORAGE__DATA_DIR:       "/data"
+      INFRALENS__TELEMETRY__LOG_LEVEL:    "info"
+      INFRALENS__CLUSTER__ETCD_ENDPOINTS: "http://etcd:2379"
+      INFRALENS__CLUSTER__NODE_ID:        "node-1"
+    depends_on:
+      etcd:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:     ["CMD", "curl", "-f", "http://localhost:4318/healthz"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+
+  # ── API Gateway (Go) ──────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context:    services/api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      GATEWAY_ADDR:    ":8080"
+      QUERY_BACKEND:   "infralens:5317"
+      JWT_SECRET:      ""
+    depends_on:
+      infralens:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:     ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+
+  # ── LLM Copilot (Python) — optional profile ───────────────────────────────────
+  llm-copilot:
+    profiles: ["copilot"]
+    build:
+      context:    services/llm-copilot
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./models:/models:ro
+      - copilot-data:/data
+    environment:
+      COPILOT_GATEWAY_URL:      "http://api-gateway:8080"
+      COPILOT_FEEDBACK_DB_PATH: "/data/feedback.db"
+      COPILOT_MODEL_PATH:       "/models/llama-3.2-3b-instruct.Q4_K_M.gguf"
+      COPILOT_N_GPU_LAYERS:     "0"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── MinIO (S3-compatible cold storage) ───────────────────────────────────────
+  minio:
+    image: minio/minio:RELEASE.2024-01-01T00-00-01Z
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      MINIO_ROOT_USER:     minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    healthcheck:
+      test:     ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout:  5s
+      retries:  5
+    restart: unless-stopped
+
+  # ── Prometheus ────────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9091:9090"
+    restart: unless-stopped
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  etcd-data:
+  infralens-data:
+  minio-data:
+  grafana-data:
+  copilot-data:

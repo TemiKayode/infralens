@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "infralens.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "infralens.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "infralens.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "infralens.fullname" . }}-headless
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  template:
+    metadata:
+      labels:
+        {{- include "infralens.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "infralens.serviceAccountName" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: infralens-server
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: INFRALENS__CLUSTER__NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: INFRALENS__STORAGE__DATA_DIR
+              value: {{ .Values.config.dataDir }}
+            - name: INFRALENS__STORAGE__MEMTABLE_SIZE_BYTES
+              value: {{ .Values.config.memtableSizeBytes | quote }}
+            - name: INFRALENS__STORAGE__PARTITION_HOURS
+              value: {{ .Values.config.partitionHours | quote }}
+            - name: INFRALENS__STORAGE__L0_COMPACTION_TRIGGER
+              value: {{ .Values.config.l0CompactionTrigger | quote }}
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+              protocol: TCP
+            - name: otlp-http
+              containerPort: 4318
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+            - name: internal
+              containerPort: 5317
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: otlp-http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: otlp-http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.config.dataDir }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.storage.class }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}

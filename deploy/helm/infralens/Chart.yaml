@@ -1,0 +1,15 @@
+apiVersion: v2
+name: infralens
+description: InfraLens — Production-grade observability platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/infralens/infralens
+keywords:
+  - observability
+  - metrics
+  - logs
+  - traces
+  - opentelemetry
+maintainers:
+  - name: InfraLens Team

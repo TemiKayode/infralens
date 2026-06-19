@@ -1,0 +1,16 @@
+InfraLens has been deployed!
+
+OTLP Ingestion:
+  gRPC: kubectl port-forward svc/{{ include "infralens.fullname" . }} 4317:4317
+  HTTP: kubectl port-forward svc/{{ include "infralens.fullname" . }} 4318:4318
+
+{{- if .Values.gateway.enabled }}
+API Gateway:
+  kubectl port-forward svc/{{ include "infralens.fullname" . }}-gateway 8080:8080
+  curl -X POST http://localhost:8080/api/v1/query \
+       -H 'Content-Type: application/json' \
+       -d '{"query": "SELECT * FROM logs LIMIT 10;"}'
+{{- end }}
+
+Prometheus metrics:
+  kubectl port-forward svc/{{ include "infralens.fullname" . }} 9090:9090

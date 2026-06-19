@@ -1,0 +1,90 @@
+syntax = "proto3";
+package infralens.internal.v1;
+
+option go_package = "github.com/infralens/infralens/gen/internal/v1;internalv1";
+
+// ── Internal node-to-node RPC ─────────────────────────────────────────────────
+
+service InternalService {
+  // Execute a partial physical plan on this shard and stream RecordBatches back.
+  rpc QueryShard(ShardQueryRequest) returns (stream ShardQueryResponse) {}
+
+  // Stream WAL entries from a primary to a replica.
+  rpc Replicate(stream ReplicateRequest) returns (stream ReplicateAck) {}
+
+  // Full shard state transfer: the caller receives a stream of SSTable chunks.
+  rpc SyncShard(SyncShardRequest) returns (stream SyncShardChunk) {}
+
+  // Return this node's health and shard ownership metadata.
+  rpc GetNodeInfo(GetNodeInfoRequest) returns (GetNodeInfoResponse) {}
+}
+
+// ── Scatter/Gather ────────────────────────────────────────────────────────────
+
+message ShardQueryRequest {
+  string  query_id    = 1;  // UUID for tracing
+  bytes   plan_bytes  = 2;  // bincode-serialised PhysicalPlan
+  uint64  start_ns    = 3;
+  uint64  end_ns      = 4;
+  string  signal      = 5;  // "logs" | "metrics" | "traces"
+  uint32  max_rows    = 6;  // 0 = unlimited
+}
+
+message ShardQueryResponse {
+  bytes   record_batch_ipc = 1;  // Arrow IPC serialised RecordBatch
+  bool    is_last          = 2;
+  uint64  rows_returned    = 3;
+  string  error            = 4;  // non-empty on error
+}
+
+// ── Replication ───────────────────────────────────────────────────────────────
+
+message ReplicateRequest {
+  uint64  sequence      = 1;  // monotone within (partition, signal)
+  bytes   wal_entry     = 2;  // raw WAL bytes as written by primary
+  string  partition_key = 3;  // e.g. "2024010100"
+  string  signal        = 4;  // "logs" | "metrics" | "traces"
+  string  node_id       = 5;  // sender node ID
+}
+
+message ReplicateAck {
+  uint64  sequence   = 1;
+  bool    accepted   = 2;
+  string  error      = 3;
+}
+
+// ── Shard sync (for new nodes joining) ───────────────────────────────────────
+
+message SyncShardRequest {
+  string  shard_id       = 1;
+  string  signal         = 2;
+  uint64  from_sequence  = 3;  // 0 = full transfer
+}
+
+message SyncShardChunk {
+  string  filename      = 1;  // relative path within the shard dir
+  bytes   data          = 2;  // file contents (chunked at 1 MiB)
+  bool    is_last_chunk = 3;
+  bool    is_last_file  = 4;
+}
+
+// ── Node info ─────────────────────────────────────────────────────────────────
+
+message GetNodeInfoRequest {}
+
+message GetNodeInfoResponse {
+  string          node_id          = 1;
+  string          version          = 2;
+  repeated string primary_shards   = 3;
+  repeated string replica_shards   = 4;
+  uint64          ring_version     = 5;
+  bool            ready            = 6;
+  NodeStats       stats            = 7;
+}
+
+message NodeStats {
+  uint64  memtable_bytes     = 1;
+  uint64  sstable_count      = 2;
+  uint64  ingested_total     = 3;
+  double  ingest_rate_per_s  = 4;
+}

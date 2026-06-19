@@ -1,0 +1,43 @@
+---
+# Headless service for StatefulSet pod DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "infralens.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "infralens.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  selector:
+    {{- include "infralens.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+    - name: internal
+      port: 5317
+      targetPort: internal
+---
+# ClusterIP service for OTLP ingestion (external clients)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "infralens.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "infralens.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "infralens.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
+    - name: metrics
+      port: 9090
+      targetPort: metrics

@@ -1,0 +1,21 @@
+[server]
+grpc_addr    = "0.0.0.0:4317"
+http_addr    = "0.0.0.0:4318"
+metrics_addr = "0.0.0.0:9090"
+
+[storage]
+data_dir                 = "./data"
+memtable_size_bytes      = 67108864   # 64 MiB
+l0_compaction_trigger    = 4
+compaction_interval_secs = 30
+partition_hours          = 1
+parquet_row_group_size   = 1000000
+wal_sync_interval_ms     = 100
+
+[ingest]
+buffer_depth       = 4096
+max_batch_records  = 1000
+
+[telemetry]
+log_level = "info"
+json_logs = true

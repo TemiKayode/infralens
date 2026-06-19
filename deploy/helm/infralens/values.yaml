@@ -1,0 +1,101 @@
+# Default values for the InfraLens Helm chart.
+
+replicaCount: 3
+
+image:
+  repository: ghcr.io/infralens/infralens-server
+  tag:        "latest"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu:    "1"
+    memory: "2Gi"
+  limits:
+    cpu:    "4"
+    memory: "8Gi"
+
+storage:
+  class: standard
+  size:  50Gi
+
+config:
+  memtableSizeBytes:    67108864   # 64 MiB
+  partitionHours:       1
+  l0CompactionTrigger:  4
+  dataDir:              /data
+
+etcd:
+  enabled:   true
+  replicaCount: 3
+  image:
+    repository: bitnami/etcd
+    tag:        "3.5"
+
+gateway:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: ghcr.io/infralens/api-gateway
+    tag:        "latest"
+  service:
+    type: ClusterIP
+    port: 8080
+  env:
+    jwtSecret: ""
+
+copilot:
+  enabled: false
+  image:
+    repository: ghcr.io/infralens/llm-copilot
+    tag:        "latest"
+  resources:
+    requests:
+      cpu:    "2"
+      memory: "8Gi"
+    limits:
+      cpu:    "4"
+      memory: "16Gi"
+  modelPath: /models/llama-3.2-3b-instruct.Q4_K_M.gguf
+  nGpuLayers: 0
+
+serviceAccount:
+  create: true
+  name: ""
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+autoscaling:
+  enabled:                         false
+  minReplicas:                     3
+  maxReplicas:                     12
+  targetCPUUtilizationPercentage:  70
+
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: infralens.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+
+nodeSelector: {}
+tolerations:  []
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: infralens
+          topologyKey: kubernetes.io/hostname

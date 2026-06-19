@@ -1,0 +1,28 @@
+[package]
+name    = "infralens-cluster"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+infralens-common  = { path = "../infralens-common" }
+infralens-storage = { path = "../infralens-storage" }
+
+tokio         = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+thiserror     = { workspace = true }
+anyhow        = { workspace = true }
+tracing       = { workspace = true }
+bytes         = { workspace = true }
+parking_lot   = { workspace = true }
+dashmap       = { workspace = true }
+rand          = { workspace = true }
+uuid          = { workspace = true }
+metrics       = { workspace = true }
+
+etcd-client   = { workspace = true }
+bincode       = { workspace = true }
+
+[dev-dependencies]
+tokio    = { workspace = true }
+tempfile = "3"
