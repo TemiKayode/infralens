@@ -346,12 +346,26 @@ docker compose logs -f infralens api-gateway
 
 The copilot requires a GGUF model file (~2 GB). Download it first:
 
+```powershell
+# PowerShell (Windows)
+New-Item -ItemType Directory -Force models | Out-Null
+Invoke-WebRequest `
+  -Uri "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf" `
+  -OutFile "models\llama-3.2-3b-instruct.Q4_K_M.gguf"
+```
+
 ```bash
-# Download Llama 3.2 3B Instruct (Q4_K_M quantisation, ~2 GB)
+# bash (macOS / Linux)
 mkdir -p models
 curl -L -o models/llama-3.2-3b-instruct.Q4_K_M.gguf \
   https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q4_K_M.gguf
 ```
+
+> If the download returns 401, use the Python fallback (works without a HuggingFace account):
+> ```powershell
+> pip install huggingface-hub
+> python -c "from huggingface_hub import hf_hub_download; hf_hub_download('bartowski/Llama-3.2-3B-Instruct-GGUF', 'Llama-3.2-3B-Instruct-Q4_K_M.gguf', local_dir='models')"
+> ```
 
 Then start the copilot profile:
 
