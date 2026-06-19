@@ -308,6 +308,25 @@ Invoke-RestMethod http://localhost:8080/healthz
 
 ---
 
+## Stack in Action
+
+### All services healthy in Docker Desktop
+
+![Docker Desktop — all 6 InfraLens services running](docs/screenshots/docker-desktop.png)
+
+Six services start in dependency order: **etcd** (cluster membership) → **MinIO** (cold object store) → **infralens** (Rust ingest + storage engine) → **api-gateway** (Go query gateway) → **Prometheus** + **Grafana** (observability). Every container that exposes a healthcheck shows green before the next dependent service starts.
+
+### MinIO object store — `infralens` bucket
+
+![MinIO console — infralens bucket](docs/screenshots/minio-console.png)
+
+MinIO is an S3-compatible object store running locally on port 9001. The `infralens` bucket is where compacted Parquet files will be tiered once the cold-storage integration is wired up. For now, data lives in the container's `/data` volume; the bucket is ready for when that phase ships.
+
+**What can be uploaded here?**  
+Anything you like for testing — but in production InfraLens will write Parquet files organised as `logs/YYYY/MM/DD/HH/<partition>.parquet`, `metrics/…`, and `traces/…`. You can manually upload Parquet files from the host `data/` directory and browse them here to inspect compacted columnar data.
+
+---
+
 ## Running with Docker Compose (full stack)
 
 Docker Compose starts the complete production-like environment: etcd, MinIO, InfraLens server, API Gateway, Prometheus, and Grafana.
