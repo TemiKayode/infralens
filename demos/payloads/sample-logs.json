@@ -1,0 +1,114 @@
+{
+  "resourceLogs": [
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name",    "value": {"stringValue": "payment-service"}},
+          {"key": "service.version", "value": {"stringValue": "2.4.1"}},
+          {"key": "host.name",       "value": {"stringValue": "prod-node-1"}}
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {"name": "payment.handler"},
+          "logRecords": [
+            {
+              "timeUnixNano": "1733059200000000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {"stringValue": "Payment processed successfully: order_id=ORD-1001 amount=49.99 currency=USD"},
+              "attributes": [
+                {"key": "order_id",  "value": {"stringValue": "ORD-1001"}},
+                {"key": "amount",    "value": {"doubleValue": 49.99}},
+                {"key": "currency",  "value": {"stringValue": "USD"}}
+              ]
+            },
+            {
+              "timeUnixNano": "1733059260000000000",
+              "severityNumber": 17,
+              "severityText": "ERROR",
+              "body": {"stringValue": "Payment gateway timeout: order_id=ORD-1002 gateway=stripe retries=3"},
+              "attributes": [
+                {"key": "order_id",     "value": {"stringValue": "ORD-1002"}},
+                {"key": "gateway",      "value": {"stringValue": "stripe"}},
+                {"key": "retries",      "value": {"intValue": "3"}},
+                {"key": "error.type",   "value": {"stringValue": "TimeoutError"}}
+              ]
+            },
+            {
+              "timeUnixNano": "1733059320000000000",
+              "severityNumber": 13,
+              "severityText": "WARN",
+              "body": {"stringValue": "High payment retry rate detected: rate=0.12 threshold=0.05"},
+              "attributes": [
+                {"key": "retry_rate", "value": {"doubleValue": 0.12}},
+                {"key": "threshold",  "value": {"doubleValue": 0.05}}
+              ]
+            },
+            {
+              "timeUnixNano": "1733059380000000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {"stringValue": "Payment processed successfully: order_id=ORD-1003 amount=129.00 currency=EUR"},
+              "attributes": [
+                {"key": "order_id", "value": {"stringValue": "ORD-1003"}},
+                {"key": "amount",   "value": {"doubleValue": 129.00}},
+                {"key": "currency", "value": {"stringValue": "EUR"}}
+              ]
+            },
+            {
+              "timeUnixNano": "1733059440000000000",
+              "severityNumber": 21,
+              "severityText": "FATAL",
+              "body": {"stringValue": "Database connection pool exhausted: pool=payments max_size=50 waiting=127"},
+              "attributes": [
+                {"key": "pool",     "value": {"stringValue": "payments"}},
+                {"key": "max_size", "value": {"intValue": "50"}},
+                {"key": "waiting",  "value": {"intValue": "127"}}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name",    "value": {"stringValue": "api-gateway"}},
+          {"key": "service.version", "value": {"stringValue": "1.0.0"}},
+          {"key": "host.name",       "value": {"stringValue": "prod-node-1"}}
+        ]
+      },
+      "scopeLogs": [
+        {
+          "scope": {"name": "gateway.http"},
+          "logRecords": [
+            {
+              "timeUnixNano": "1733059200500000000",
+              "severityNumber": 9,
+              "severityText": "INFO",
+              "body": {"stringValue": "GET /v1/query 200 45ms"},
+              "attributes": [
+                {"key": "http.method",      "value": {"stringValue": "GET"}},
+                {"key": "http.path",        "value": {"stringValue": "/v1/query"}},
+                {"key": "http.status_code", "value": {"intValue": "200"}},
+                {"key": "duration_ms",      "value": {"doubleValue": 45}}
+              ]
+            },
+            {
+              "timeUnixNano": "1733059260500000000",
+              "severityNumber": 17,
+              "severityText": "ERROR",
+              "body": {"stringValue": "POST /v1/query 500 upstream query engine error"},
+              "attributes": [
+                {"key": "http.method",      "value": {"stringValue": "POST"}},
+                {"key": "http.path",        "value": {"stringValue": "/v1/query"}},
+                {"key": "http.status_code", "value": {"intValue": "500"}}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name", "value": {"stringValue": "payment-service"}},
+          {"key": "host.name",    "value": {"stringValue": "prod-node-1"}}
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {"name": "payment.metrics"},
+          "metrics": [
+            {
+              "name": "http.request.duration",
+              "description": "HTTP request duration in milliseconds",
+              "unit": "ms",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1733059200000000000",
+                    "asDouble": 42.3,
+                    "attributes": [
+                      {"key": "http.method", "value": {"stringValue": "POST"}},
+                      {"key": "http.route",  "value": {"stringValue": "/payments"}},
+                      {"key": "http.status", "value": {"stringValue": "200"}}
+                    ]
+                  },
+                  {
+                    "timeUnixNano": "1733059260000000000",
+                    "asDouble": 891.7,
+                    "attributes": [
+                      {"key": "http.method", "value": {"stringValue": "POST"}},
+                      {"key": "http.route",  "value": {"stringValue": "/payments"}},
+                      {"key": "http.status", "value": {"stringValue": "500"}}
+                    ]
+                  },
+                  {
+                    "timeUnixNano": "1733059320000000000",
+                    "asDouble": 55.1,
+                    "attributes": [
+                      {"key": "http.method", "value": {"stringValue": "POST"}},
+                      {"key": "http.route",  "value": {"stringValue": "/payments"}},
+                      {"key": "http.status", "value": {"stringValue": "200"}}
+                    ]
+                  },
+                  {
+                    "timeUnixNano": "1733059380000000000",
+                    "asDouble": 1243.8,
+                    "attributes": [
+                      {"key": "http.method", "value": {"stringValue": "POST"}},
+                      {"key": "http.route",  "value": {"stringValue": "/payments"}},
+                      {"key": "http.status", "value": {"stringValue": "504"}}
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "db.query.duration",
+              "description": "Database query duration in milliseconds",
+              "unit": "ms",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1733059200000000000",
+                    "asDouble": 3.2,
+                    "attributes": [
+                      {"key": "db.operation", "value": {"stringValue": "SELECT"}},
+                      {"key": "db.table",     "value": {"stringValue": "payments"}}
+                    ]
+                  },
+                  {
+                    "timeUnixNano": "1733059260000000000",
+                    "asDouble": 832.4,
+                    "attributes": [
+                      {"key": "db.operation", "value": {"stringValue": "INSERT"}},
+                      {"key": "db.table",     "value": {"stringValue": "payments"}}
+                    ]
+                  },
+                  {
+                    "timeUnixNano": "1733059320000000000",
+                    "asDouble": 5.7,
+                    "attributes": [
+                      {"key": "db.operation", "value": {"stringValue": "SELECT"}},
+                      {"key": "db.table",     "value": {"stringValue": "payments"}}
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "name": "payment.success_rate",
+              "description": "Fraction of payments that succeeded (0–1)",
+              "unit": "1",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1733059200000000000",
+                    "asDouble": 0.98
+                  },
+                  {
+                    "timeUnixNano": "1733059260000000000",
+                    "asDouble": 0.71
+                  },
+                  {
+                    "timeUnixNano": "1733059320000000000",
+                    "asDouble": 0.94
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name", "value": {"stringValue": "api-gateway"}},
+          {"key": "host.name",    "value": {"stringValue": "prod-node-1"}}
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {"name": "gateway.metrics"},
+          "metrics": [
+            {
+              "name": "http.request.duration",
+              "description": "Gateway request latency in milliseconds",
+              "unit": "ms",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "timeUnixNano": "1733059200000000000",
+                    "asDouble": 48.9,
+                    "attributes": [
+                      {"key": "http.route", "value": {"stringValue": "/v1/query"}}
+                    ]
+                  },
+                  {
+                    "timeUnixNano": "1733059260000000000",
+                    "asDouble": 912.3,
+                    "attributes": [
+                      {"key": "http.route", "value": {"stringValue": "/v1/query"}}
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

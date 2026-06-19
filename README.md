@@ -1,5 +1,9 @@
 # InfraLens
 
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.79%2B-orange.svg)](https://www.rust-lang.org)
+[![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](#building)
+
 A production-grade, horizontally scalable observability platform — ingest logs, metrics, and traces via OpenTelemetry, store them in a custom columnar LSM engine, query them with a SQL-like language, and get AI-powered root cause analysis from an LLM copilot.
 
 ---
@@ -23,6 +27,9 @@ A production-grade, horizontally scalable observability platform — ingest logs
 15. [Port Reference](#port-reference)
 16. [Phase-by-Phase Summary](#phase-by-phase-summary)
 17. [Troubleshooting](#troubleshooting)
+18. [Architecture Deep Dives](#architecture-deep-dives)
+19. [Contributing](#contributing)
+20. [License](#license)
 
 ---
 
@@ -141,7 +148,7 @@ A production-grade, horizontally scalable observability platform — ingest logs
 ## Directory Layout
 
 ```
-Lens/
+infralens/
 ├── Cargo.toml                  Workspace manifest (8 crates)
 ├── Cargo.lock
 ├── rust-toolchain.toml         Pins Rust stable
@@ -951,3 +958,44 @@ cargo test --workspace
 cargo test -p infralens-storage
 cargo test -p infralens-query
 ```
+
+---
+
+## Architecture Deep Dives
+
+Detailed technical documentation lives in [`docs/architecture/`](docs/architecture/):
+
+| Document | Contents |
+|----------|---------|
+| [overview.md](docs/architecture/overview.md) | Component map, write/read paths, technology choices |
+| [storage-engine.md](docs/architecture/storage-engine.md) | WAL, MemTable, SSTable (Parquet), bloom filters, zone maps, compaction |
+| [query-engine.md](docs/architecture/query-engine.md) | IQL lexer/parser, logical planner, optimizer rules, Arrow executor |
+| [cluster.md](docs/architecture/cluster.md) | Consistent-hash ring, etcd membership, WAL replication, scatter/gather |
+| [llm-copilot.md](docs/architecture/llm-copilot.md) | GBNF grammar generation, RCA pipeline, feedback loop |
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, including:
+- Development environment setup
+- Crate dependency rules
+- Formatting and linting requirements per language
+- Commit message conventions
+- Pull request process
+
+Quick checks to run before opening a PR:
+
+```bash
+cargo fmt --all && cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cd services/api-gateway && go fmt ./... && go vet ./... && go test ./...
+```
+
+---
+
+## License
+
+Copyright 2026 TemiKayode
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
