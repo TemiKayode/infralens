@@ -211,10 +211,19 @@ go build -o ../../target/api-gateway .
 
 ### LLM Copilot (Python)
 
-```bash
+```powershell
+# PowerShell (Windows)
 cd services/llm-copilot
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+```bash
+# bash (macOS / Linux)
+cd services/llm-copilot
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
