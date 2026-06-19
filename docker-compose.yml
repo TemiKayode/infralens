@@ -7,17 +7,22 @@ services:
 
   # ── etcd (cluster membership) ────────────────────────────────────────────────
   etcd:
-    image: bitnami/etcd:3.5
-    environment:
-      ALLOW_NONE_AUTHENTICATION: "yes"
-      ETCD_ADVERTISE_CLIENT_URLS: http://etcd:2379
-      ETCD_LISTEN_CLIENT_URLS:    http://0.0.0.0:2379
+    image: gcr.io/etcd-development/etcd:v3.5.17
+    command:
+      - etcd
+      - --name=infralens-etcd
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=infralens-etcd=http://etcd:2380
+      - --data-dir=/etcd-data
     ports:
       - "2379:2379"
     volumes:
-      - etcd-data:/bitnami/etcd
+      - etcd-data:/etcd-data
     healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
+      test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
       interval: 10s
       timeout:  5s
       retries:  5
@@ -98,7 +103,7 @@ services:
 
   # ── MinIO (S3-compatible cold storage) ───────────────────────────────────────
   minio:
-    image: minio/minio:RELEASE.2024-01-01T00-00-01Z
+    image: minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -109,7 +114,7 @@ services:
       MINIO_ROOT_USER:     minioadmin
       MINIO_ROOT_PASSWORD: minioadmin123
     healthcheck:
-      test:     ["CMD", "mc", "ready", "local"]
+      test:     ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
       timeout:  5s
       retries:  5

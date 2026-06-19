@@ -4,11 +4,8 @@
 //!   POST /v1/logs    — accepts application/x-protobuf or application/json
 //!   POST /v1/metrics — same
 //!   POST /v1/traces  — same
-//!
-//! This implementation accepts only Protobuf bodies (Content-Type: application/x-protobuf).
-//! JSON support can be added in Phase 2 using the pbjson crate.
 
-use crate::{normalizer, processor::IngestPipeline};
+use crate::{json_decoder, normalizer, processor::IngestPipeline};
 use axum::{
     body::Bytes,
     extract::State,
@@ -29,6 +26,13 @@ use prost::Message;
 use tracing::{debug, warn};
 
 const CONTENT_TYPE_PROTO: &str = "application/x-protobuf";
+const CONTENT_TYPE_JSON:  &str = "application/json";
+
+fn content_type(headers: &HeaderMap) -> &str {
+    headers.get(axum::http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+}
 
 // ── Router ────────────────────────────────────────────────────────────────────
 
@@ -47,27 +51,39 @@ async fn handle_logs(
     headers:         HeaderMap,
     body:            Bytes,
 ) -> impl IntoResponse {
-    if !is_proto_content_type(&headers) {
-        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Use application/x-protobuf").into_response();
-    }
-
-    let req = match ExportLogsServiceRequest::decode(body) {
-        Ok(r)  => r,
-        Err(e) => {
-            warn!(error = %e, "Failed to decode OTLP/HTTP logs request");
-            return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+    let ct = content_type(&headers);
+    let records = if ct.starts_with(CONTENT_TYPE_JSON) {
+        match serde_json::from_slice::<serde_json::Value>(&body) {
+            Ok(v)  => json_decoder::decode_logs(&v),
+            Err(e) => {
+                warn!(error = %e, "Failed to decode OTLP/JSON logs");
+                return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+            }
         }
+    } else if ct.starts_with(CONTENT_TYPE_PROTO) {
+        match ExportLogsServiceRequest::decode(body) {
+            Ok(r)  => normalizer::normalise_logs(&r.resource_logs),
+            Err(e) => {
+                warn!(error = %e, "Failed to decode OTLP/protobuf logs");
+                return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+            }
+        }
+    } else {
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "Content-Type must be application/json or application/x-protobuf").into_response();
     };
 
-    let records = normalizer::normalise_logs(&req.resource_logs);
     debug!(count = records.len(), "OTLP/HTTP logs export");
-
     match pipeline.submit(IngestBatch::Logs(records)).await {
         Ok(_) => {
-            let resp = ExportLogsServiceResponse::default();
-            let mut buf = Vec::new();
-            resp.encode(&mut buf).unwrap();
-            (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_PROTO)], buf).into_response()
+            if ct.starts_with(CONTENT_TYPE_JSON) {
+                (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_JSON)],
+                 r#"{"partialSuccess":{}}"#).into_response()
+            } else {
+                let mut buf = Vec::new();
+                ExportLogsServiceResponse::default().encode(&mut buf).unwrap();
+                (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_PROTO)], buf).into_response()
+            }
         }
         Err(e) if e.is_retriable() => (StatusCode::TOO_MANY_REQUESTS, e.to_string()).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -79,27 +95,39 @@ async fn handle_metrics(
     headers:         HeaderMap,
     body:            Bytes,
 ) -> impl IntoResponse {
-    if !is_proto_content_type(&headers) {
-        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Use application/x-protobuf").into_response();
-    }
-
-    let req = match ExportMetricsServiceRequest::decode(body) {
-        Ok(r)  => r,
-        Err(e) => {
-            warn!(error = %e, "Failed to decode OTLP/HTTP metrics request");
-            return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+    let ct = content_type(&headers);
+    let records = if ct.starts_with(CONTENT_TYPE_JSON) {
+        match serde_json::from_slice::<serde_json::Value>(&body) {
+            Ok(v)  => json_decoder::decode_metrics(&v),
+            Err(e) => {
+                warn!(error = %e, "Failed to decode OTLP/JSON metrics");
+                return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+            }
         }
+    } else if ct.starts_with(CONTENT_TYPE_PROTO) {
+        match ExportMetricsServiceRequest::decode(body) {
+            Ok(r)  => normalizer::normalise_metrics(&r.resource_metrics),
+            Err(e) => {
+                warn!(error = %e, "Failed to decode OTLP/protobuf metrics");
+                return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+            }
+        }
+    } else {
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "Content-Type must be application/json or application/x-protobuf").into_response();
     };
 
-    let records = normalizer::normalise_metrics(&req.resource_metrics);
     debug!(count = records.len(), "OTLP/HTTP metrics export");
-
     match pipeline.submit(IngestBatch::Metrics(records)).await {
         Ok(_) => {
-            let resp = ExportMetricsServiceResponse::default();
-            let mut buf = Vec::new();
-            resp.encode(&mut buf).unwrap();
-            (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_PROTO)], buf).into_response()
+            if ct.starts_with(CONTENT_TYPE_JSON) {
+                (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_JSON)],
+                 r#"{"partialSuccess":{}}"#).into_response()
+            } else {
+                let mut buf = Vec::new();
+                ExportMetricsServiceResponse::default().encode(&mut buf).unwrap();
+                (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_PROTO)], buf).into_response()
+            }
         }
         Err(e) if e.is_retriable() => (StatusCode::TOO_MANY_REQUESTS, e.to_string()).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
@@ -111,39 +139,41 @@ async fn handle_traces(
     headers:         HeaderMap,
     body:            Bytes,
 ) -> impl IntoResponse {
-    if !is_proto_content_type(&headers) {
-        return (StatusCode::UNSUPPORTED_MEDIA_TYPE, "Use application/x-protobuf").into_response();
-    }
-
-    let req = match ExportTraceServiceRequest::decode(body) {
-        Ok(r)  => r,
-        Err(e) => {
-            warn!(error = %e, "Failed to decode OTLP/HTTP trace request");
-            return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+    let ct = content_type(&headers);
+    let spans = if ct.starts_with(CONTENT_TYPE_JSON) {
+        match serde_json::from_slice::<serde_json::Value>(&body) {
+            Ok(v)  => json_decoder::decode_spans(&v),
+            Err(e) => {
+                warn!(error = %e, "Failed to decode OTLP/JSON traces");
+                return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+            }
         }
+    } else if ct.starts_with(CONTENT_TYPE_PROTO) {
+        match ExportTraceServiceRequest::decode(body) {
+            Ok(r)  => normalizer::normalise_spans(&r.resource_spans),
+            Err(e) => {
+                warn!(error = %e, "Failed to decode OTLP/protobuf traces");
+                return (StatusCode::BAD_REQUEST, e.to_string()).into_response();
+            }
+        }
+    } else {
+        return (StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "Content-Type must be application/json or application/x-protobuf").into_response();
     };
 
-    let spans = normalizer::normalise_spans(&req.resource_spans);
     debug!(count = spans.len(), "OTLP/HTTP trace export");
-
     match pipeline.submit(IngestBatch::Spans(spans)).await {
         Ok(_) => {
-            let resp = ExportTraceServiceResponse::default();
-            let mut buf = Vec::new();
-            resp.encode(&mut buf).unwrap();
-            (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_PROTO)], buf).into_response()
+            if ct.starts_with(CONTENT_TYPE_JSON) {
+                (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_JSON)],
+                 r#"{"partialSuccess":{}}"#).into_response()
+            } else {
+                let mut buf = Vec::new();
+                ExportTraceServiceResponse::default().encode(&mut buf).unwrap();
+                (StatusCode::OK, [(axum::http::header::CONTENT_TYPE, CONTENT_TYPE_PROTO)], buf).into_response()
+            }
         }
         Err(e) if e.is_retriable() => (StatusCode::TOO_MANY_REQUESTS, e.to_string()).into_response(),
         Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
     }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-fn is_proto_content_type(headers: &HeaderMap) -> bool {
-    headers
-        .get(axum::http::header::CONTENT_TYPE)
-        .and_then(|v| v.to_str().ok())
-        .map(|ct| ct.starts_with(CONTENT_TYPE_PROTO))
-        .unwrap_or(false)
 }

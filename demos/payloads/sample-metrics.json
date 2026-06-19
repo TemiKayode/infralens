@@ -91,7 +91,7 @@
             },
             {
               "name": "payment.success_rate",
-              "description": "Fraction of payments that succeeded (0–1)",
+              "description": "Fraction of payments that succeeded (0-1)",
               "unit": "1",
               "gauge": {
                 "dataPoints": [
