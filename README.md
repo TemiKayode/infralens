@@ -1029,6 +1029,8 @@ Detailed technical documentation lives in [`docs/architecture/`](docs/architectu
 | [query-engine.md](docs/architecture/query-engine.md) | IQL lexer/parser, logical planner, optimizer rules, Arrow executor |
 | [cluster.md](docs/architecture/cluster.md) | Consistent-hash ring, etcd membership, WAL replication, scatter/gather |
 | [llm-copilot.md](docs/architecture/llm-copilot.md) | GBNF grammar generation, RCA pipeline, feedback loop |
+| [design-decisions.md](docs/design-decisions.md) | Why Rust, Parquet, OTLP, etcd, gRPC, Go, MinIO, llama.cpp, GBNF, and IQL |
+| [load-testing.md](docs/load-testing.md) | Benchmark methodology, measured throughput (2,056 RPS single-node Docker), latency percentiles, scaling projections |
 
 ---
 
